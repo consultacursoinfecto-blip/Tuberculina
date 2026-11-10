@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<!--
+  Simulador educativo: Prueba de Tuberculina Básica Operativa (PTBO).
+  Infectología y Zoonosis · 4.º año · Carrera de Medicina Veterinaria.
+
+  Archivo autónomo: HTML, CSS y JavaScript integrados en este único documento.
+  No utiliza fuentes web externas ni servicios de terceros (solo tipografías del
+  sistema). Funciona sin conexión a internet abriéndolo directamente en un navegador.
+-->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador PTBO · Diagnóstico de tuberculosis bovina</title>
+<meta name="description" content="Simulador educativo de la prueba de tuberculina básica operativa (PTBO) para el diagnóstico de tuberculosis en bovinos.">
+<style>
+/* ============ Estilos generales ============ */
+:root{
+  --fondo:#eef4f2;
+  --tarjeta:#ffffff;
+  --primario:#0e6e5c;
+  --primario-oscuro:#0a5044;
+  --primario-suave:#e0f0ec;
+  --tinta:#20302c;
+  --tinta-2:#5a6b66;
+  --borde:#d8e4e0;
+  --neg:#187a3f;   --neg-bg:#e3f3e8;
+  --sos:#a16207;   --sos-bg:#fbf0d7;
+  --pos:#b3261e;   --pos-bg:#fbe6e4;
+  --alerta-bg:#fdf6e1;
+  --alerta-borde:#e3c552;
+  --alerta-texto:#665316;
+  --error:#b3261e;
+  --radio:14px;
+  --sombra:0 1px 2px rgba(18,48,42,.05), 0 10px 28px rgba(18,48,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Roboto,Arial,sans-serif;
+  background:var(--fondo);color:var(--tinta);line-height:1.6;padding:28px 16px 56px;
+}
+.contenedor{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.tarjeta{background:var(--tarjeta);border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra);padding:26px 28px}
+
+/* ============ Cabecera ============ */
+.cabecera{text-align:center;border-top:6px solid var(--primario)}
+.chip-curso{display:inline-block;background:var(--primario-suave);color:var(--primario-oscuro);font-size:.8rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:6px 14px;border-radius:999px;margin-bottom:14px}
+.cabecera h1{font-size:1.5rem;line-height:1.35;color:var(--primario-oscuro);margin-bottom:8px}
+.cabecera .bajada{color:var(--tinta-2);font-size:.97rem;max-width:660px;margin:0 auto}
+
+/* ============ Títulos de sección ============ */
+h2{font-size:1.05rem;color:var(--primario-oscuro);margin-bottom:14px}
+h2::after{content:"";display:block;width:36px;height:3px;background:var(--primario);border-radius:2px;margin-top:6px}
+
+/* ============ Introducción ============ */
+.intro p{margin-bottom:12px}
+.formula{background:var(--primario-suave);border-left:5px solid var(--primario);border-radius:10px;padding:14px 18px;margin:14px 0;color:var(--primario-oscuro)}
+.formula strong{font-weight:700}
+.intro ul{margin:10px 0 0 1.25rem}
+.intro li{margin:4px 0;font-size:.94rem;color:var(--tinta-2)}
+
+/* ============ Formulario ============ */
+.campos{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.campo label{display:block;font-weight:600;font-size:.93rem;margin-bottom:8px}
+.campo .ayuda{font-size:.83rem;color:var(--tinta-2);margin-top:6px}
+.campo input[type=number]{width:100%;padding:12px 14px;font-size:1.1rem;color:var(--tinta);border:1.5px solid var(--borde);border-radius:10px;background:#fbfdfc;outline:none;transition:border-color .15s, box-shadow .15s}
+.campo input[type=number]:focus{border-color:var(--primario);box-shadow:0 0 0 3px rgba(14,110,92,.15)}
+.campo input.error{border-color:var(--error);background:#fdf6f5}
+.mensaje-error{display:none;color:var(--error);font-size:.85rem;margin-top:6px;font-weight:600}
+.mensaje-error.visible{display:block}
+.acciones{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+.btn{padding:12px 24px;font-size:.98rem;font-weight:600;border-radius:10px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.btn-primario{background:var(--primario);color:#fff;border:1.5px solid var(--primario)}
+.btn-primario:hover{background:var(--primario-oscuro);border-color:var(--primario-oscuro)}
+.btn-secundario{background:#fff;color:var(--tinta-2);border:1.5px solid var(--borde)}
+.btn-secundario:hover{color:var(--primario-oscuro);border-color:var(--primario)}
+.btn:focus-visible{outline:3px solid rgba(14,110,92,.35);outline-offset:2px}
+
+/* ============ Resultado ============ */
+.vacia{color:var(--tinta-2);text-align:center;padding:14px 0;font-size:.97rem}
+.resultado-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:24px}
+.res-col+.res-col{border-left:1px solid var(--borde);padding-left:24px}
+.res-etiqueta{display:block;font-size:.8rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-2);margin-bottom:8px}
+.res-valor{font-size:2.7rem;font-weight:700;color:var(--primario-oscuro);line-height:1.05}
+.res-unidad{font-size:1.15rem;font-weight:600;color:var(--tinta-2);margin-left:4px}
+.res-calculo{display:inline-block;margin-top:10px;background:var(--primario-suave);color:var(--primario-oscuro);font-weight:600;font-size:.9rem;padding:5px 12px;border-radius:8px}
+.chip{display:inline-block;padding:9px 20px;border-radius:999px;font-weight:700;font-size:1.08rem}
+.chip-negativo{background:var(--neg-bg);color:var(--neg)}
+.chip-sospechoso{background:var(--sos-bg);color:var(--sos)}
+.chip-positivo{background:var(--pos-bg);color:var(--pos)}
+.res-nota{display:block;margin-top:10px;font-size:.87rem;color:var(--tinta-2)}
+
+/* ============ Tabla de equivalencias ============ */
+.tabla-equivalencias{width:100%;border-collapse:separate;border-spacing:0;font-size:.97rem}
+.tabla-equivalencias th{background:var(--primario-suave);color:var(--primario-oscuro);text-align:left;padding:12px 16px;font-size:.88rem}
+.tabla-equivalencias th:first-child{border-radius:10px 0 0 10px}
+.tabla-equivalencias th:last-child{border-radius:0 10px 10px 0}
+.tabla-equivalencias td{padding:14px 16px;border-bottom:1px solid var(--borde);vertical-align:middle}
+.tabla-equivalencias tbody tr:last-child td{border-bottom:none}
+.tabla-equivalencias td:first-child{font-weight:600}
+.cat{display:inline-block;padding:4px 14px;border-radius:999px;font-weight:700;font-size:.85rem}
+.cat-negativo{background:var(--neg-bg);color:var(--neg)}
+.cat-sospechoso{background:var(--sos-bg);color:var(--sos)}
+.cat-positivo{background:var(--pos-bg);color:var(--pos)}
+#fila-negativo.activa td{background:var(--neg-bg)}
+#fila-negativo.activa td:first-child{box-shadow:inset 4px 0 0 var(--neg)}
+#fila-sospechoso.activa td{background:var(--sos-bg)}
+#fila-sospechoso.activa td:first-child{box-shadow:inset 4px 0 0 var(--sos)}
+#fila-positivo.activa td{background:var(--pos-bg)}
+#fila-positivo.activa td:first-child{box-shadow:inset 4px 0 0 var(--pos)}
+#fila-negativo.activa td:first-child,#fila-sospechoso.activa td:first-child,#fila-positivo.activa td:first-child{border-radius:8px 0 0 8px}
+#fila-negativo.activa td:last-child,#fila-sospechoso.activa td:last-child,#fila-positivo.activa td:last-child{border-radius:0 8px 8px 0}
+.marca{display:inline-block;margin-left:10px;padding:2px 10px;border-radius:999px;background:#fff;border:1px solid var(--borde);color:var(--tinta-2);font-size:.72rem;font-weight:600;white-space:nowrap}
+.pie-tabla{margin-top:10px;font-size:.85rem;color:var(--tinta-2)}
+
+/* ============ Límites del simulador ============ */
+.limites{background:var(--alerta-bg);border:1px solid #efe3b8;border-left:5px solid var(--alerta-borde);border-radius:12px;padding:18px 22px;color:var(--alerta-texto);font-size:.94rem}
+.limites strong{display:block;margin-bottom:4px;font-size:.95rem}
+
+/* ============ Pie ============ */
+.pie{text-align:center;font-size:.85rem;color:var(--tinta-2);margin-top:2px}
+
+/* ============ Responsive e impresión ============ */
+@media (max-width:680px){
+  .tarjeta{padding:20px}
+  .campos{grid-template-columns:1fr}
+  .resultado-grid{grid-template-columns:1fr}
+  .res-col+.res-col{border-left:none;padding-left:0;border-top:1px solid var(--borde);padding-top:16px}
+  .res-valor{font-size:2.2rem}
+  .tabla-equivalencias th,.tabla-equivalencias td{padding:10px}
+  .tabla-equivalencias{font-size:.88rem}
+}
+@media print{
+  body{background:#fff;padding:0}
+  .tarjeta{box-shadow:none;border:1px solid #cfd8d5}
+  .acciones{display:none}
+}
+</style>
+</head>
+<body>
+<div class="contenedor">
+
+  <!-- Cabecera -->
+  <header class="tarjeta cabecera">
+    <span class="chip-curso">Infectología y Zoonosis · 4.º año · Medicina Veterinaria</span>
+    <h1>Simulador educativo: Prueba de Tuberculina Básica Operativa (PTBO)</h1>
+    <p class="bajada">Diagnóstico de tuberculosis en bovinos a partir de la medición del grosor del pliegue anocaudal interno, antes y después de la inoculación con tuberculina PPD.</p>
+  </header>
+
+  <!-- La prueba en breve -->
+  <section class="tarjeta intro">
+    <h2>La prueba en breve</h2>
+    <p>La prueba de tuberculina básica operativa (PTBO) es la prueba de campo empleada en el marco del <strong>Plan Nacional de Control y Erradicación de Tuberculosis Bovina</strong>. Consiste en la inoculación intradérmica de <strong>0,1&nbsp;mL de tuberculina PPD bovina</strong> en el pliegue anocaudal interno del bovino y en la comparación del grosor del pliegue antes de la inoculación (preinoculación) y a las <strong>72 horas postinoculación</strong>.</p>
+    <div class="formula">
+      <strong>Aumento del espesor del pliegue (mm) =</strong> grosor postinoculación (mm) − grosor preinoculación (mm)
+    </div>
+    <ul>
+      <li>Ingresá valores enteros, entre 2 y 20 mm, para cada medición.</li>
+      <li>El resultado se muestra sin decimales.</li>
+      <li>La tabla de equivalencias destaca automáticamente la fila correspondiente al resultado calculado.</li>
+    </ul>
+  </section>
+
+  <!-- Entradas -->
+  <section class="tarjeta">
+    <h2>Ingresá las mediciones</h2>
+    <form id="formulario" novalidate>
+      <div class="campos">
+        <div class="campo">
+          <label for="pre">Grosor del pliegue anocaudal interno — preinoculación (mm)</label>
+          <input type="number" id="pre" name="pre" min="2" max="20" step="1" inputmode="numeric" placeholder="Ejemplo: 4" autocomplete="off">
+          <p class="ayuda">Valor entero admitido: de 2 a 20 mm.</p>
+          <p class="mensaje-error" id="error-pre" aria-live="polite"></p>
+        </div>
+        <div class="campo">
+          <label for="post">Grosor del pliegue anocaudal interno — postinoculación (mm)</label>
+          <input type="number" id="post" name="post" min="2" max="20" step="1" inputmode="numeric" placeholder="Ejemplo: 8" autocomplete="off">
+          <p class="ayuda">Valor entero admitido: de 2 a 20 mm.</p>
+          <p class="mensaje-error" id="error-post" aria-live="polite"></p>
+        </div>
+      </div>
+      <div class="acciones">
+        <button type="submit" class="btn btn-primario" id="btn-calcular">Calcular resultado</button>
+        <button type="button" class="btn btn-secundario" id="btn-limpiar">Limpiar</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Resultado -->
+  <section class="tarjeta" id="seccion-resultado">
+    <h2>Resultado</h2>
+    <div id="resultado-caja" aria-live="polite">
+      <p class="vacia">Ingresá las dos mediciones para calcular el aumento del espesor del pliegue y su equivalencia.</p>
+    </div>
+  </section>
+
+  <!-- Tabla de equivalencias (salida: medida y equivalencia, una al lado de la otra) -->
+  <section class="tarjeta">
+    <h2>Tabla de equivalencias</h2>
+    <table class="tabla-equivalencias">
+      <thead>
+        <tr>
+          <th scope="col">Aumento del espesor del pliegue anocaudal (mm)</th>
+          <th scope="col">Equivalencia según el resultado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr id="fila-negativo">
+          <td>Menor a 3</td>
+          <td><span class="cat cat-negativo">Negativo</span></td>
+        </tr>
+        <tr id="fila-sospechoso">
+          <td>De 3 a menor de 5</td>
+          <td><span class="cat cat-sospechoso">Sospechoso</span></td>
+        </tr>
+        <tr id="fila-positivo">
+          <td>Igual o mayor a 5</td>
+          <td><span class="cat cat-positivo">Positivo</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="pie-tabla">La fila correspondiente al resultado obtenido se destaca automáticamente al calcular.</p>
+  </section>
+
+  <!-- Límites del simulador -->
+  <section class="limites">
+    <strong>Límites del simulador</strong>
+    Esta simulación representa una parte acotada del tema diagnóstico de tuberculosis en el marco del Plan Nacional de Control y Erradicación de Tuberculosis Bovina. Pretende ser una herramienta complementaria cuyos resultados serán analizados e interpretados en clase.
+  </section>
+
+  <footer class="pie">
+    Material didáctico complementario para uso académico · Infectología y Zoonosis (4.º año) · Carrera de Medicina Veterinaria
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var formulario = document.getElementById("formulario");
+  var pre = document.getElementById("pre");
+  var post = document.getElementById("post");
+  var errorPre = document.getElementById("error-pre");
+  var errorPost = document.getElementById("error-post");
+  var caja = document.getElementById("resultado-caja");
+  var btnLimpiar = document.getElementById("btn-limpiar");
+  var seccionResultado = document.getElementById("seccion-resultado");
+
+  var filas = {
+    "Negativo": document.getElementById("fila-negativo"),
+    "Sospechoso": document.getElementById("fila-sospechoso"),
+    "Positivo": document.getElementById("fila-positivo")
+  };
+
+  var tocado = { pre: false, post: false };
+
+  function validarCampo(input){
+    var crudo = input.value.trim().replace(",", ".");
+    if(crudo === ""){ return { vacio: true }; }
+    var n = Number(crudo);
+    if(!isFinite(n)){ return { error: "Ingresá un valor numérico válido." }; }
+    if(!Number.isInteger(n)){ return { error: "Ingresá un número entero, sin decimales." }; }
+    if(n < 2 || n > 20){ return { error: "Fuera de rango: el valor debe estar entre 2 y 20 mm." }; }
+    return { valor: n };
+  }
+
+  function clasificar(aumento){
+    if(aumento < 3){ return "Negativo"; }
+    if(aumento < 5){ return "Sospechoso"; }
+    return "Positivo";
+  }
+
+  function limpiarFilas(){
+    Object.keys(filas).forEach(function(clave){
+      var fila = filas[clave];
+      fila.classList.remove("activa");
+      var marca = fila.querySelector(".marca");
+      if(marca){ marca.parentNode.removeChild(marca); }
+    });
+  }
+
+  function pintarError(input, span, res){
+    var mostrar = (tocado[input.id] && res.error) ? res.error : "";
+    span.textContent = mostrar;
+    span.classList.toggle("visible", !!mostrar);
+    input.classList.toggle("error", !!mostrar);
+  }
+
+  function vaciaHTML(mensaje){
+    return '<p class="vacia">' + mensaje + '</p>';
+  }
+
+  function pintarResultado(r1, r2){
+    limpiarFilas();
+    if(r1.vacio || r2.vacio){
+      caja.innerHTML = vaciaHTML("Ingresá las dos mediciones para calcular el aumento del espesor del pliegue y su equivalencia.");
+      return;
+    }
+    if(r1.error || r2.error){
+      caja.innerHTML = vaciaHTML("Revisá los valores ingresados: deben ser números enteros entre 2 y 20 mm.");
+      return;
+    }
+
+    var aumento = r2.valor - r1.valor;
+    var categoria = clasificar(aumento);
+
+    var html = '<div class="resultado-grid">'
+      + '<div class="res-col">'
+      +   '<span class="res-etiqueta">Aumento del espesor del pliegue anocaudal</span>'
+      +   '<div><span class="res-valor">' + aumento + '</span><span class="res-unidad">mm</span></div>'
+      +   '<span class="res-calculo">' + r2.valor + ' mm − ' + r1.valor + ' mm = ' + aumento + ' mm</span>'
+      + '</div>'
+      + '<div class="res-col">'
+      +   '<span class="res-etiqueta">Equivalencia según el resultado</span>'
+      +   '<span class="chip chip-' + categoria.toLowerCase() + '">' + categoria + '</span>'
+      +   (aumento < 0 ? '<span class="res-nota">El pliegue midió menos en la lectura postinoculación; el aumento se expresa como valor negativo.</span>' : '')
+      + '</div>'
+      + '</div>';
+    caja.innerHTML = html;
+
+    var fila = filas[categoria];
+    fila.classList.add("activa");
+    var marca = document.createElement("span");
+    marca.className = "marca";
+    marca.textContent = "Resultado obtenido";
+    fila.querySelector("td:last-child").appendChild(marca);
+  }
+
+  function pintar(){
+    var r1 = validarCampo(pre);
+    var r2 = validarCampo(post);
+    pintarError(pre, errorPre, r1);
+    pintarError(post, errorPost, r2);
+    pintarResultado(r1, r2);
+  }
+
+  formulario.addEventListener("submit", function(evento){
+    evento.preventDefault();
+    tocado.pre = true;
+    tocado.post = true;
+    pintar();
+    if(seccionResultado.scrollIntoView){
+      seccionResultado.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  });
+
+  [pre, post].forEach(function(input){
+    input.addEventListener("input", pintar);
+    input.addEventListener("blur", function(){
+      tocado[input.id] = true;
+      pintar();
+    });
+  });
+
+  btnLimpiar.addEventListener("click", function(){
+    pre.value = "";
+    post.value = "";
+    tocado.pre = false;
+    tocado.post = false;
+    errorPre.textContent = "";
+    errorPost.textContent = "";
+    errorPre.classList.remove("visible");
+    errorPost.classList.remove("visible");
+    pre.classList.remove("error");
+    post.classList.remove("error");
+    pintar();
+    pre.focus();
+  });
+
+  pintar();
+})();
+</script>
+</body>
+</html>
